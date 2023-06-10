@@ -1,16 +1,19 @@
 package main
 
 import (
+	"context"
 	"fmt"
 
 	hook "github.com/robotn/gohook"
 )
 
 func registerEvent() {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	fmt.Println("--- Please press ctrl + shift + q to stop hook ---")
 	hook.Register(hook.KeyDown, []string{"q", "ctrl", "shift"}, func(e hook.Event) {
 		fmt.Println("ctrl-shift-q")
-		hook.End()
+		cancel()
 	})
 
 	fmt.Println("--- Please press w ---")
@@ -18,8 +21,8 @@ func registerEvent() {
 		fmt.Println("w-")
 	})
 
-	s := hook.Start()
-	<-hook.Process(s)
+	s := hook.Start(ctx, hook.BothHookEnabled)
+	<-hook.Process(ctx, s)
 }
 
 func addMouse() {
@@ -32,15 +35,18 @@ func addMouse() {
 		}
 	})
 
-	s := hook.Start()
-	<-hook.Process(s)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	s := hook.Start(ctx, hook.BothHookEnabled)
+	<-hook.Process(ctx, s)
 }
 
 // hook listen and return values using detailed examples
 func add() {
 	fmt.Println("hook add...")
-	s := hook.Start()
-	defer hook.End()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	s := hook.Start(ctx, hook.BothHookEnabled)
 
 	ct := false
 	for {
@@ -59,8 +65,9 @@ func add() {
 // base hook example
 func base() {
 	fmt.Println("hook start...")
-	evChan := hook.Start()
-	defer hook.End()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	evChan := hook.Start(ctx, hook.BothHookEnabled)
 
 	for ev := range evChan {
 		fmt.Println("hook: ", ev)

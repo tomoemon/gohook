@@ -18,16 +18,17 @@
 #include "pub.h"
 // #include "../chan/eb_chan.h"
 #include "dispatch_proc.h"
+#include "../hook/hooktype.h"
 
 void go_send(char*);
 void go_sleep(void);
 
-void start_ev(){
+void start_ev(hook_type type){
     events = eb_chan_create(1024);
     eb_chan_retain(events);
 	sending = true;
 	// add_event("q");
-	add_event_async();
+	add_event_async(type);
 }
 
 void pollEv(){
@@ -55,16 +56,16 @@ void endPoll(){
 int add_event(char *key_event) {
 	// (uint16_t *)
 	cevent = key_event;
-	add_hook(&dispatch_proc_end);
+	add_hook(&dispatch_proc_end, BOTH_HOOK_ENABLED);
 
 	return cstatus;
 }
 
-void add_event_async(){
-	add_hook(&dispatch_proc);
+void add_event_async(hook_type type){
+	add_hook(&dispatch_proc, type);
 }
 
-int add_hook(dispatcher_t dispatch) {
+int add_hook(dispatcher_t dispatch, hook_type type) {
 	// Set the logger callback for library output.
 	hook_set_logger(&loggerProc);
 
@@ -73,7 +74,7 @@ int add_hook(dispatcher_t dispatch) {
 
 	// Start the hook and block.
 	// NOTE If EVENT_HOOK_ENABLED was delivered, the status will always succeed.
-	int status = hook_run();
+	int status = hook_run(type);
 
 	switch (status) {
 		case IOHOOK_SUCCESS:

@@ -24,6 +24,7 @@ package hook
 import "C"
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -32,7 +33,7 @@ import (
 
 const (
 	// Version get the gohook version
-	Version = "v0.40.0.123, Sierra Nevada!"
+	Version = "v0.41.0!"
 
 	// HookEnabled honk enable status
 	HookEnabled  = 1 // iota
@@ -68,6 +69,7 @@ const (
 type Event struct {
 	Kind     uint8 `json:"id"`
 	When     time.Time
+	Time     uint64 `json:"time"`
 	Mask     uint16 `json:"mask"`
 	Reserved uint16 `json:"reserved"`
 
@@ -87,8 +89,7 @@ type Event struct {
 }
 
 var (
-	ev      = make(chan Event, 1024)
-	asyncon = false
+	ev = make(chan Event, 1024)
 
 	lck sync.RWMutex
 
@@ -128,7 +129,7 @@ func Register(when uint8, cmds []string, cb func(Event)) {
 }
 
 // Process return go hook process
-func Process(evChan <-chan Event) (out chan bool) {
+func Process(ctx context.Context, evChan <-chan Event) (out chan bool) {
 	out = make(chan bool)
 	go func() {
 		for ev := range evChan {
@@ -139,12 +140,13 @@ func Process(evChan <-chan Event) (out chan bool) {
 			}
 
 			for _, v := range events[ev.Kind] {
-				if !asyncon {
+				select {
+				case <-ctx.Done():
 					break
-				}
-
-				if allPressed(pressed, keys[v]...) {
-					cbs[v](ev)
+				default:
+					if allPressed(pressed, keys[v]...) {
+						cbs[v](ev)
+					}
 				}
 			}
 		}
@@ -218,22 +220,34 @@ func KeychartoRawcode(kc string) uint16 {
 	return keytoraw[kc]
 }
 
+type HookType string
+
+const KeyboardHookEnabled HookType = "keyboard"
+const MouseHookEnabled HookType = "mouse"
+const BothHookEnabled HookType = "both"
+
 // Start adds global event hook to OS
 // returns event channel
-func Start() chan Event {
+func Start(ctx context.Context, hookType HookType) chan Event {
+	var cHookType C.hook_type = C.BOTH_HOOK_ENABLED
+	if hookType == KeyboardHookEnabled {
+		cHookType = C.KEYBOARD_HOOK_ENABLED
+	} else if hookType == MouseHookEnabled {
+		cHookType = C.MOUSE_HOOK_ENABLED
+	}
 	ev = make(chan Event, 1024)
-	go C.start_ev()
+	go C.start_ev(cHookType)
 
-	asyncon = true
 	go func() {
 		for {
-			if !asyncon {
+			select {
+			case <-ctx.Done():
+				End()
 				return
+			default:
+				C.pollEv()
+				time.Sleep(time.Millisecond * 50)
 			}
-
-			C.pollEv()
-			time.Sleep(time.Millisecond * 50)
-			//todo: find smallest time that does not destroy the cpu utilization
 		}
 	}()
 
@@ -242,7 +256,6 @@ func Start() chan Event {
 
 // End removes global event hook
 func End() {
-	asyncon = false
 	C.endPoll()
 	C.stop_event()
 	time.Sleep(time.Millisecond * 10)

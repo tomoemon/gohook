@@ -7,6 +7,12 @@
 [![GoDoc](https://godoc.org/github.com/robotn/gohook?status.svg)](https://godoc.org/github.com/robotn/gohook)
 <!-- This is a work in progress. -->
 
+## Changes from the original repository
+
+- Conforms to golang standard context
+- Get the time of keystroke, not the time of polling, with microsecond accuracy (Mac, Windows)
+- Keyboard and mouse hooks can be enabled individually
+
 ## Requirements (Linux):
 
 [Robotgo-requirements-event](https://github.com/go-vgo/robotgo#requirements)

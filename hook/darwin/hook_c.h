@@ -23,6 +23,7 @@
 #include <stdbool.h>
 #include <sys/time.h>
 #include "../iohook.h"
+#include "../hooktype.h"
 // #include "../logger_c.h"
 #include "input.h"
 
@@ -89,6 +90,12 @@ static iohook_event event;
 
 // Event dispatch callback.
 static dispatcher_t dispatcher = NULL;
+
+static inline uint64_t get_current_microsec_unix_timestamp() {
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    return (uint64_t) tv.tv_sec * 1000000 + (uint64_t) tv.tv_usec;
+}
 
 IOHOOK_API void hook_set_dispatch_proc(dispatcher_t dispatch_proc) {
 	logger(LOG_LEVEL_DEBUG,	"%s [%u]: Setting new dispatch callback to %#p.\n",
@@ -307,7 +314,7 @@ static void stop_message_port_runloop() {
 #endif
 
 static void hook_status_proc(CFRunLoopObserverRef observer, CFRunLoopActivity activity, void *info) {
-	uint64_t timestamp = mach_absolute_time();
+    uint64_t timestamp = get_current_microsec_unix_timestamp();
 
 	switch (activity) {
 		case kCFRunLoopEntry:
@@ -927,11 +934,8 @@ static inline void process_mouse_wheel(uint64_t timestamp, CGEventRef event_ref)
 }
 
 CGEventRef hook_event_proc(CGEventTapProxy tap_proxy, CGEventType type, CGEventRef event_ref, void *refcon) {
-	// Get the local system time in UTC.
-	gettimeofday(&system_time, NULL);
-
-	// Grab the native event timestap for use later..
-	uint64_t timestamp = (uint64_t) CGEventGetTimestamp(event_ref);
+	// gettimeofday(&system_time, NULL);
+    uint64_t timestamp = get_current_microsec_unix_timestamp();
 
 	// Get the event class.
 	switch (type) {
@@ -1061,8 +1065,23 @@ CGEventRef hook_event_proc(CGEventTapProxy tap_proxy, CGEventType type, CGEventR
 	return result_ref;
 }
 
-IOHOOK_API int hook_run() {
+IOHOOK_API int hook_run(hook_type type) {
 	int status = IOHOOK_SUCCESS;
+
+	const CGEventMask keyboard_mask = CGEventMaskBit(kCGEventKeyDown) |
+										CGEventMaskBit(kCGEventKeyUp) |
+										CGEventMaskBit(kCGEventFlagsChanged);
+	const CGEventMask mouse_mask = CGEventMaskBit(kCGEventLeftMouseDown) |
+									CGEventMaskBit(kCGEventLeftMouseUp) |
+									CGEventMaskBit(kCGEventLeftMouseDragged) |
+									CGEventMaskBit(kCGEventRightMouseDown) |
+									CGEventMaskBit(kCGEventRightMouseUp) |
+									CGEventMaskBit(kCGEventRightMouseDragged) |
+									CGEventMaskBit(kCGEventOtherMouseDown) |
+									CGEventMaskBit(kCGEventOtherMouseUp) |
+									CGEventMaskBit(kCGEventOtherMouseDragged) |
+									CGEventMaskBit(kCGEventMouseMoved) |
+									CGEventMaskBit(kCGEventScrollWheel);
 
 	// Check for accessibility each time we start the loop.
 	if (is_accessibility_enabled()) {
@@ -1083,28 +1102,15 @@ IOHOOK_API int hook_run() {
 					#ifdef USE_DEBUG
 					CGEventMask event_mask = kCGEventMaskForAllEvents;
 					#else
-					CGEventMask event_mask =	CGEventMaskBit(kCGEventKeyDown) |
-												CGEventMaskBit(kCGEventKeyUp) |
-												CGEventMaskBit(kCGEventFlagsChanged) |
-
-												CGEventMaskBit(kCGEventLeftMouseDown) |
-												CGEventMaskBit(kCGEventLeftMouseUp) |
-												CGEventMaskBit(kCGEventLeftMouseDragged) |
-
-												CGEventMaskBit(kCGEventRightMouseDown) |
-												CGEventMaskBit(kCGEventRightMouseUp) |
-												CGEventMaskBit(kCGEventRightMouseDragged) |
-
-												CGEventMaskBit(kCGEventOtherMouseDown) |
-												CGEventMaskBit(kCGEventOtherMouseUp) |
-												CGEventMaskBit(kCGEventOtherMouseDragged) |
-
-												CGEventMaskBit(kCGEventMouseMoved) |
-												CGEventMaskBit(kCGEventScrollWheel) |
-
-												// NOTE This event is undocumented and used
-												// for caps-lock release and multi-media keys.
-												CGEventMaskBit(NX_SYSDEFINED);
+                    // NOTE This event is undocumented and used
+                    // for caps-lock release and multi-media keys.
+                    CGEventMask event_mask = CGEventMaskBit(NX_SYSDEFINED);
+                    if (type & KEYBOARD_HOOK_ENABLED) {
+                        event_mask |= keyboard_mask;
+                    }
+                    if (type & MOUSE_HOOK_ENABLED) {
+                        event_mask |= mouse_mask;
+                    }
 					#endif
 
 					// Create the event tap.

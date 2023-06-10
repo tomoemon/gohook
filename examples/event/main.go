@@ -11,28 +11,31 @@
 package main
 
 import (
+	"context"
 	"fmt"
 
 	hook "github.com/robotn/gohook"
 )
 
 func addEvent() {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	fmt.Println("--- Please press ctrl + shift + q ---")
-	ok := hook.AddEvents("q", "ctrl", "shift")
+	ok := hook.AddEvents(ctx, "q", "ctrl", "shift")
 	if ok {
 		fmt.Println("add events...")
 	}
 
 	fmt.Println("--- Please press w---")
-	ok = hook.AddEvents("w")
+	ok = hook.AddEvents(ctx, "w")
 	if ok {
 		fmt.Println("add events")
 	}
 
 	// start hook
-	s := hook.Start()
-	// end hook
-	defer hook.End()
+	ctx, cancel = context.WithCancel(context.Background())
+	defer cancel()
+	s := hook.Start(ctx, hook.BothHookEnabled)
 
 	for ev := range s {
 		fmt.Println("hook: ", ev)
@@ -40,20 +43,22 @@ func addEvent() {
 }
 
 func addMouse() {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	fmt.Println("--- Please press left mouse button ---")
-	ok := hook.AddMouse("left")
+	ok := hook.AddMouse(ctx, "left")
 	if ok {
 		fmt.Println("add mouse...")
 	}
 
 	fmt.Println("--- Please press left mouse button and move mosue to 100,100 ---")
-	ok = hook.AddMouse("left", 100, 100)
+	ok = hook.AddMouse(ctx, "left", 100, 100)
 	if ok {
 		fmt.Println("add mouse and move to 100,100 ...")
 	}
 
 	fmt.Println("--- Please move mosue to 100,100 ---")
-	ok = hook.AddMousePos(100, 100)
+	ok = hook.AddMousePos(ctx, 100, 100)
 	if ok {
 		fmt.Println(" move mouse to 100,100 ...")
 	}

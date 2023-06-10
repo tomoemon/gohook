@@ -1,6 +1,7 @@
 package hook
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -9,8 +10,8 @@ import (
 
 func TestAdd(t *testing.T) {
 	fmt.Println("hook test...")
-
-	e := Start()
+	ctx := context.Background()
+	e := Start(ctx, BothHookEnabled)
 	tt.NotNil(t, e)
 }
 
