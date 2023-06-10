@@ -35,6 +35,7 @@
 #include <string.h>
 
 #include "../hook/iohook.h"
+#include "../hook/hooktype.h"
 #include "../chan/eb_chan.h"
 
 eb_chan events;
@@ -49,8 +50,8 @@ int cstatus = 1;
 int event_status;
 int rrevent;
 
-int add_hook(dispatcher_t dispatch);
-void add_event_async();
+int add_hook(dispatcher_t dispatch, hook_type type);
+void add_event_async(hook_type type);
 int add_event(char *key_event);
 int stop_event();
 

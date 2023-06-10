@@ -13,6 +13,7 @@
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include "hooktype.h"
 
 /* Begin Error Codes */
 #define IOHOOK_SUCCESS							0x00
@@ -417,7 +418,7 @@ extern "C" {
 	IOHOOK_API void hook_set_dispatch_proc(dispatcher_t dispatch_proc);
 
 	// Insert the event hook.
-	IOHOOK_API int hook_run();
+	IOHOOK_API int hook_run(hook_type type);
 
 	// Withdraw the event hook.
 	IOHOOK_API int hook_stop();

@@ -22,17 +22,12 @@ func go_send(s *C.char) {
 	if err != nil {
 		log.Fatal("json.Unmarshal error is: ", err)
 	}
-
+	out.When = time.UnixMicro(int64(out.Time))
+	//fmt.Println(fmt.Sprintf("now: %+v, out: %+v", time.Now(), out))
 	if out.Keychar != CharUndefined {
 		lck.Lock()
 		raw2key[out.Rawcode] = string([]rune{out.Keychar})
 		lck.Unlock()
-	}
-
-	// todo bury this deep into the C lib so that the time is correct
-	out.When = time.Now() // at least it's consistent
-	if err != nil {
-		log.Fatal("json.Unmarshal error is: ", err)
 	}
 
 	// todo: maybe make non-bloking

@@ -10,7 +10,10 @@
 
 package hook
 
-import "strconv"
+import (
+	"context"
+	"strconv"
+)
 
 /*
  ___________    ____  _______ .__   __. .___________.
@@ -58,8 +61,8 @@ func AddEvent(key string) bool {
 // hook.AddEvents("q")
 // hook.AddEvents("q", "ctrl")
 // hook.AddEvents("q", "ctrl", "shift")
-func AddEvents(key string, arr ...string) bool {
-	s := Start()
+func AddEvents(ctx context.Context, key string, arr ...string) bool {
+	s := Start(ctx, BothHookEnabled)
 	// defer End()
 
 	ct := false
@@ -109,8 +112,8 @@ func AddEvents(key string, arr ...string) bool {
 //
 // hook.AddMouse("left")
 // hook.AddMouse("left", 100, 100)
-func AddMouse(btn string, x ...int16) bool {
-	s := Start()
+func AddMouse(ctx context.Context, btn string, x ...int16) bool {
+	s := Start(ctx, BothHookEnabled)
 	ukey := MouseMap[btn]
 
 	ct := false
@@ -135,8 +138,8 @@ func AddMouse(btn string, x ...int16) bool {
 }
 
 // AddMousePos add listen mouse event pos hook
-func AddMousePos(x, y int16) bool {
-	s := Start()
+func AddMousePos(ctx context.Context, x, y int16) bool {
+	s := Start(ctx, BothHookEnabled)
 
 	for {
 		e := <-s
